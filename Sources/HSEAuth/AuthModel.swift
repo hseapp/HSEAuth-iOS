@@ -20,7 +20,7 @@ public class AuthModel {
             let session = ASWebAuthenticationSession(url: url,
                                                      callbackURLScheme: callbackScheme)
             {
-               if let resultUrl = $0 {
+                if let resultUrl = $0 {
                     completion(.success(resultUrl))
                 }
                 if let error = $1 {
@@ -47,19 +47,28 @@ public class AuthModel {
             self.session = session
         }
     }
-}
 
-extension AuthModel: AuthManagerProtocol {
-    public func auth(_ completion: @escaping (Result<String, Error>) -> Void) {
+    //TODO: - get urls from config file
+    func getAccessToken(for code: String, completion: @escaping (Result<AccessTokenResponse, Error>) -> Void) {
+        let request = AccessTokenRequest(code: code, clientId: clientId)
+        try? authManager?.networkClient.search(request: request) {
+            switch $0 {
+            case .success(let accessTokenResponse):
+                completion(.success(accessTokenResponse))
+            case .failure(let error):
+                completion(.failure(error))
+            }
+        }
+    }
+
+    func getCode(_ completion: @escaping (Result<String, Error>) -> Void) {
         guard let authUrl = Constants.authUrl else { preconditionFailure("something wrong") }
 
-        var urlComponents = URLComponents(url: authUrl, resolvingAgainstBaseURL: false)
-        urlComponents?.queryItems = [
-            URLQueryItem(name: "response_type", value: Constants.responseType),
-            URLQueryItem(name: "client_id", value: clientId),
-            URLQueryItem(name: "redirect_uri", value: Constants.redirectUrl),
-            URLQueryItem(name: "scope", value: Constants.scope.joined(separator: " "))
-        ]
+        let urlComponents = URLComponents(url: authUrl, resolvingAgainstBaseURL: false)?
+            .add(key: "response_type", value: Constants.responseType)
+            .add(key: "client_id", value: clientId)
+            .add(key: "redirect_uri", value: Constants.redirectUrl)
+            .add(key: "scope", value: Constants.scope.joined(separator: " "))
 
         guard let url = urlComponents?.url else { preconditionFailure("something wrong") }
 
@@ -70,15 +79,35 @@ extension AuthModel: AuthManagerProtocol {
                 case .success(let url):
                     guard
                         let components = URLComponents(url: url,
-                                                         resolvingAgainstBaseURL: false),
+                                                       resolvingAgainstBaseURL: false),
                         let code = (components.queryItems?
                             .first(where: { $0.name == "code" })
                             .flatMap { $0.value })
-                    else { preconditionFailure("something wrong") }
+                        else { preconditionFailure("something wrong") }
                     completion(.success(code))
                 case .failure(let error):
                     completion(.failure(error))
                 }
+        }
+    }
+}
+
+extension AuthModel: AuthManagerProtocol {
+    public func auth(_ completion: @escaping (Result<AccessTokenResponse, Error>) -> Void) {
+        getCode() { [weak self] in
+            switch $0 {
+            case .success(let code):
+                self?.getAccessToken(for: code) {
+                    switch $0 {
+                    case .success(let response):
+                        completion(.success(response))
+                    case .failure(let error):
+                        completion(.failure(error))
+                    }
+                }
+            case .failure(let error):
+                completion(.failure(error))
+            }
         }
     }
 }
