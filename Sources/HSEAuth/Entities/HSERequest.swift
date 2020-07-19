@@ -1,10 +1,3 @@
-//
-//  File.swift
-//  
-//
-//  Created by Alexander Tooszovski on 07.07.2020.
-//
-
 import Foundation
 
 protocol HSERequest {

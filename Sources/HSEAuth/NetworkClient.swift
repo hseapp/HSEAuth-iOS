@@ -1,71 +1,58 @@
-//
-//  File.swift
-//  
-//
-//  Created by Alexander Tooszovski on 07.07.2020.
-//
-
 import Foundation
 
 public class NetworkClient {
     private let delay: TimeInterval
     private let session = URLSession.shared
-    private var task: URLSessionTask?
-    private var job: DispatchWorkItem?
 
     private let scheme: String
     private let host: String
 
-    public init(delay: TimeInterval = 0.3, scheme: String, host: String) {
+    public init(delay: TimeInterval = 0.3, scheme: String = "https", host: String) {
         self.delay = delay
         self.scheme = scheme
         self.host = host
     }
 
-    func search<Request: HSERequest>(request: Request,
-                                     limit: Int = 0,
-                                     completion: @escaping (HSEResult<Request.ResponseResult>) -> ()) throws {
-        invalidate()
+    func search<Request: HSERequest>(request: Request, limit: Int = 0) -> Result<Request.ResponseResult, Error> {
         var urlComponents = URLComponents()
         urlComponents.scheme = scheme
         urlComponents.host = host
         urlComponents.path = request.path
 
-        guard let url = urlComponents.url else { preconditionFailure("error in request") }
+        guard let url = urlComponents.url else { preconditionFailure("error in url") }
         var sessionRequest = URLRequest(url: url)
         sessionRequest.httpMethod = request.method.string
         sessionRequest.httpBody = request.body
-        job = DispatchWorkItem(block: { [weak self] in
-            guard let self = self else { return }
-            self.task = self.session.dataTask(with: sessionRequest) { data, response, error in
-                if let errorUnwrapped = error {
-                    completion(.failure(errorUnwrapped))
-                    return
-                }
-                let decoder = JSONDecoder()
-                decoder.dateDecodingStrategy = .iso8601
-                guard let dataUnwrapped = data else {
-                    completion(.failure(NetworkClientError(id: 1, desription: "Empty data")))
-                    return
-                }
-                do {
-                    let object = try decoder.decode(Request.ResponseResult.self, from: dataUnwrapped)
-                    completion(.success(object))
-                } catch {
-                    completion(.failure(error))
-                }
+
+        var result: Result<Request.ResponseResult, Error>!
+
+        let semaphore = DispatchSemaphore(value: 0)
+
+        URLSession.shared.dataTask(with: sessionRequest) { data, response, error in
+            if let errorUnwrapped = error {
+                result = .failure(errorUnwrapped)
+                return
             }
-            self.task!.resume()
-        })
-        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + delay, execute: job!)
-    }
+            let decoder = JSONDecoder()
+            decoder.dateDecodingStrategy = .iso8601
+            guard let dataUnwrapped = data else {
+                result = .failure(NetworkClientError(id: 1, desription: "Empty data"))
+                return
+            }
+            do {
+                let object = try decoder.decode(Request.ResponseResult.self, from: dataUnwrapped)
+                result = .success(object)
+            } catch {
+                result = .failure(error)
+            }
+            semaphore.signal()
+        }
+        .resume()
 
-    func invalidate() {
-        task?.cancel()
-        job?.cancel()
-    }
+        _ = semaphore.wait(wallTimeout: .distantFuture)
 
-    deinit { invalidate() }
+        return result
+    }
 }
 
 extension NetworkClient {

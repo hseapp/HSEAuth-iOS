@@ -25,16 +25,24 @@
 
 <sub>Swift</sub>
 ```
-var model: AuthModel = AuthModel(with: <CLIENT_ID>)
+let model: AuthManagerProtocol = AuthModel(
+       with: <CLIENT_ID>,
+       redirectScheme: "ru.hse.pf://",
+       host: "auth.hse.ru",
+       reditectPath: "/adfs/oauth2/ios/ru.hse.pf/callback"
+       )
 if let context = UIApplication.shared.keyWindow {
     model.authManager = AuthManager(with: context)
 }
-model.auth {
-    switch $0 {
-    case .success(let code):
-        // handle token
-    case .failure(let error):
-        // handle error
+DispatchQueue.global(qos: .utility).async {
+ let result = self.model.auth()
+ DispatchQueue.main.async {
+     switch result {
+       case let .success(data):
+           print(data)
+        case let .failure(error):
+           print(error)
+        }
     }
 }
 ```

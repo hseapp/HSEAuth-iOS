@@ -6,26 +6,41 @@ public class AuthModel {
 
     public var session: NSObject? = nil
     public var authManager: AuthManager?
+    private var config: OpenIdConfigResponse?
+    private let networkClient: NetworkClient
+    private let redirectScheme: String
+    private let redirectUrl: String
 
-    public init(with clientId: String) {
+    public init(
+        with clientId: String,
+        redirectScheme: String,
+        host: String,
+        reditectPath: String
+    ) {
         self.clientId = clientId
+        networkClient = NetworkClient(host: host)
+        self.redirectScheme = redirectScheme
+        redirectUrl = redirectScheme + host + reditectPath
     }
 
     func auth(
         url: URL,
-        callbackScheme: String,
-        completion: @escaping (Result<URL, Error>) -> Void
-    ) {
+        callbackScheme: String
+    ) -> Result<URL, Error> {
+        var result: Result<URL, Error>!
+        let semaphore = DispatchSemaphore(value: 0)
+
         if #available(iOS 12, *) {
             let session = ASWebAuthenticationSession(url: url,
                                                      callbackURLScheme: callbackScheme)
             {
                 if let resultUrl = $0 {
-                    completion(.success(resultUrl))
+                    result = .success(resultUrl)
                 }
                 if let error = $1 {
-                    completion(.failure(error))
+                    result = .failure(error)
                 }
+                semaphore.signal()
             }
             if #available(iOS 13.0, *) {
                 session.presentationContextProvider = authManager
@@ -37,77 +52,79 @@ public class AuthModel {
                                                   callbackURLScheme: callbackScheme)
             {
                 if let resultUrl = $0 {
-                    completion(.success(resultUrl))
+                    result = .success(resultUrl)
                 }
                 if let error = $1 {
-                    completion(.failure(error))
+                    result = .failure(error)
                 }
+                semaphore.signal()
             }
             session.start()
             self.session = session
         }
+        _ = semaphore.wait(wallTimeout: .distantFuture)
+        return result
     }
 
-    //TODO: - get urls from config file
-    func getAccessToken(for code: String, completion: @escaping (Result<AccessTokenResponse, Error>) -> Void) {
+    func getAccessToken(for code: String) -> Result<AccessTokenResponse, Error> {
         let request = AccessTokenRequest(code: code, clientId: clientId)
-        try? authManager?.networkClient.search(request: request) {
-            switch $0 {
-            case .success(let accessTokenResponse):
-                completion(.success(accessTokenResponse))
-            case .failure(let error):
-                completion(.failure(error))
-            }
-        }
+        return networkClient.search(request: request)
     }
 
-    func getCode(_ completion: @escaping (Result<String, Error>) -> Void) {
-        guard let authUrl = Constants.authUrl else { preconditionFailure("something wrong") }
+    func getCode() -> Result<String, Error> {
+        guard let authUrl = URL(string: config?.authorizationEndpoint ?? "") else { preconditionFailure("something wrong") }
 
         let urlComponents = URLComponents(url: authUrl, resolvingAgainstBaseURL: false)?
-            .add(key: "response_type", value: Constants.responseType)
+            .add(key: "response_type", value: "code")
             .add(key: "client_id", value: clientId)
-            .add(key: "redirect_uri", value: Constants.redirectUrl)
-            .add(key: "scope", value: Constants.scope.joined(separator: " "))
+            .add(key: "redirect_uri", value: redirectUrl)
+            .add(key: "scope", value: ["profile", "openid"].joined(separator: " "))
 
         guard let url = urlComponents?.url else { preconditionFailure("something wrong") }
 
-        auth(
+        return auth(
             url: url,
-            callbackScheme: Constants.redirectScheme) {
-                switch $0 {
-                case .success(let url):
-                    guard
-                        let components = URLComponents(url: url,
-                                                       resolvingAgainstBaseURL: false),
-                        let code = (components.queryItems?
+            callbackScheme: redirectScheme
+        )
+            .flatMap {
+                guard
+                    let components = URLComponents(
+                        url: $0,
+                        resolvingAgainstBaseURL: false
+                    ),
+                    let code = (
+                        components.queryItems?
                             .first(where: { $0.name == "code" })
-                            .flatMap { $0.value })
-                        else { preconditionFailure("something wrong") }
-                    completion(.success(code))
-                case .failure(let error):
-                    completion(.failure(error))
-                }
+                            .flatMap { $0.value }
+                    )
+                    else { preconditionFailure("something wrong") }
+                return .success(code)
+        }
+    }
+
+    func getOpenIdConfig() -> Result<OpenIdConfigResponse, Error> {
+        let request = OpenIdConfigRequest()
+        return networkClient.search(request: request)
+            .flatMap { [weak self] result -> Result<OpenIdConfigResponse, Error> in
+                self?.config = result
+                return .success(result)
         }
     }
 }
 
 extension AuthModel: AuthManagerProtocol {
-    public func auth(_ completion: @escaping (Result<AccessTokenResponse, Error>) -> Void) {
-        getCode() { [weak self] in
-            switch $0 {
-            case .success(let code):
-                self?.getAccessToken(for: code) {
-                    switch $0 {
-                    case .success(let response):
-                        completion(.success(response))
-                    case .failure(let error):
-                        completion(.failure(error))
-                    }
-                }
-            case .failure(let error):
-                completion(.failure(error))
+    public func auth() -> Result<AccessTokenResponse, Error> {
+        return getOpenIdConfig()
+            .flatMap { [weak self] in
+                guard let self = self else { preconditionFailure() }
+                self.config = $0
+                return self.getCode()
             }
-        }
+            .flatMap { getAccessToken(for: $0) }
+    }
+    
+    public func refreshAccessToken(with refreshToken: String) -> Result<AccessTokenResponse, Error> {
+        let request = RefreshAccessTokenRequest(clientId: clientId, refreshToken: refreshToken)
+        return networkClient.search(request: request)
     }
 }
