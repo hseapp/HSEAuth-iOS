@@ -67,7 +67,7 @@ public class AuthModel {
     }
 
     func getAccessToken(for code: String) -> Result<AccessTokenResponse, Error> {
-        let request = AccessTokenRequest(code: code, clientId: clientId)
+        let request = AccessTokenRequest(code: code, clientId: clientId, redirectUrl: redirectUrl)
         return networkClient.search(request: request)
     }
 
@@ -126,5 +126,9 @@ extension AuthModel: AuthManagerProtocol {
     public func refreshAccessToken(with refreshToken: String) -> Result<AccessTokenResponse, Error> {
         let request = RefreshAccessTokenRequest(clientId: clientId, refreshToken: refreshToken)
         return networkClient.search(request: request)
+    }
+
+    public func logout() {
+        _ = networkClient.search(request: LogoutRequest())
     }
 }

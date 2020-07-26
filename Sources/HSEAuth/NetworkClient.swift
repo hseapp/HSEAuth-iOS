@@ -1,14 +1,12 @@
 import Foundation
 
 public class NetworkClient {
-    private let delay: TimeInterval
     private let session = URLSession.shared
 
     private let scheme: String
     private let host: String
 
-    public init(delay: TimeInterval = 0.3, scheme: String = "https", host: String) {
-        self.delay = delay
+    public init(scheme: String = "https", host: String) {
         self.scheme = scheme
         self.host = host
     }
