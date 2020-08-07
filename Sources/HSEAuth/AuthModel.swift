@@ -79,6 +79,7 @@ public class AuthModel {
             .add(key: "client_id", value: clientId)
             .add(key: "redirect_uri", value: redirectUrl)
             .add(key: "scope", value: ["profile", "openid"].joined(separator: " "))
+            .add(key: "prompt", value: "login")
 
         guard let url = urlComponents?.url else { preconditionFailure("something wrong") }
 
