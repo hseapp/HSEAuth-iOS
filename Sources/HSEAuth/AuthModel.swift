@@ -20,7 +20,7 @@ public class AuthModel {
         self.clientId = clientId
         networkClient = NetworkClient(host: host)
         self.redirectScheme = redirectScheme
-        redirectUrl = redirectScheme + host + reditectPath
+        redirectUrl = redirectScheme + "://" + host + reditectPath
     }
 
     func auth(
