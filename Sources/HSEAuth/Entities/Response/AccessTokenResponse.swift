@@ -1,14 +1,14 @@
 import Foundation
 
 public struct AccessTokenResponse: Codable {
-    let scope: String
-    let accessToken: String
-    let resource: String?
-    let tokenType: String
-    let idToken: String
-    let expiresIn: Int
-    let refreshToken: String
-    let refreshTokenExpiresIn: Int
+    public let scope: String
+    public let accessToken: String
+    public let resource: String?
+    public let tokenType: String
+    public let idToken: String
+    public let expiresIn: Int
+    public let refreshToken: String
+    public let refreshTokenExpiresIn: Int
 
     enum CodingKeys: String, CodingKey {
         case scope, resource

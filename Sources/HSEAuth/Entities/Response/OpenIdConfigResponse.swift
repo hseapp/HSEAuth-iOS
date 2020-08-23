@@ -1,31 +1,31 @@
 import Foundation
 
 public struct OpenIdConfigResponse: Codable {
-    let issuer: String
-    let authorizationEndpoint: String
-    let tokenEndpoint: String
-    let jwksUri: String
-    let tokenEndpointAuthMethodsSupported: [String]
-    let responseTypesSupported: [String]
-    let responseModesSupported: [String]
-    let grantTypesSupported: [String]
-    let subjectTypesSupported: [String]
-    let scopesSupported: [String]
-    let idTokenSigningAlgValuesSupported: [String]
-    let tokenEndpointAuthSigningAlgValuesSupported: [String]
-    let accessTokenIssuer: String
-    let claimsSupported: [String]
-    let microsoftMultiRefreshToken: Bool
-    let userinfoEndpoint: String
-    let endSessionEndpoint: String
-    let asAccessTokenTokenBindingSupported: Bool
-    let asRefreshTokenTokenBindingSupported: Bool
-    let resourceAccessTokenTokenBindingSupported: Bool
-    let opIdTokenTokenBindingSupported: Bool
-    let rpIdTokenTokenBindingSupported: Bool
-    let frontchannelLogoutSupported: Bool
-    let frontchannelLogoutSessionSupported: Bool
-    let deviceAuthorizationEndpoint: String
+    public let issuer: String
+    public let authorizationEndpoint: String
+    public let tokenEndpoint: String
+    public let jwksUri: String
+    public let tokenEndpointAuthMethodsSupported: [String]
+    public let responseTypesSupported: [String]
+    public let responseModesSupported: [String]
+    public let grantTypesSupported: [String]
+    public let subjectTypesSupported: [String]
+    public let scopesSupported: [String]
+    public let idTokenSigningAlgValuesSupported: [String]
+    public let tokenEndpointAuthSigningAlgValuesSupported: [String]
+    public let accessTokenIssuer: String
+    public let claimsSupported: [String]
+    public let microsoftMultiRefreshToken: Bool
+    public let userinfoEndpoint: String
+    public let endSessionEndpoint: String
+    public let asAccessTokenTokenBindingSupported: Bool
+    public let asRefreshTokenTokenBindingSupported: Bool
+    public let resourceAccessTokenTokenBindingSupported: Bool
+    public let opIdTokenTokenBindingSupported: Bool
+    public let rpIdTokenTokenBindingSupported: Bool
+    public let frontchannelLogoutSupported: Bool
+    public let frontchannelLogoutSessionSupported: Bool
+    public let deviceAuthorizationEndpoint: String
 
     enum CodingKeys: String, CodingKey {
         case issuer
