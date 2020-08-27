@@ -23,5 +23,6 @@ public protocol AuthManagerProtocol: class {
     var authManager: AuthManager? { get set }
     func auth() -> Result<AccessTokenResponse, Error>
     func refreshAccessToken(with refreshToken: String) -> Result<AccessTokenResponse, Error>
-    func logout()
+    func logoutEmployee()
+    func logoutStudent()
 }
