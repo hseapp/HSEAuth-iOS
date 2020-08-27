@@ -1,7 +1,7 @@
 import Foundation
 
 public struct AccessTokenResponse: Codable {
-    public let scope: String
+    public let scope: String?
     public let accessToken: String
     public let resource: String?
     public let tokenType: String

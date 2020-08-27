@@ -129,7 +129,11 @@ extension AuthModel: AuthManagerProtocol {
         return networkClient.search(request: request)
     }
 
-    public func logout() {
-        _ = networkClient.search(request: LogoutRequest())
+    public func logoutEmployee() {
+        _ = networkClient.search(request: EmployeeLogout())
+    }
+
+    public func logoutStudent() {
+        _ = networkClient.search(request: StudentLogout())
     }
 }
