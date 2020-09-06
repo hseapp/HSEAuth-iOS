@@ -3,7 +3,7 @@ import Foundation
 public struct AccessTokenResponse: Codable {
     let scope: String
     let accessToken: String
-    let resource: String
+    let resource: String?
     let tokenType: String
     let idToken: String
     let expiresIn: Int
