@@ -2,6 +2,11 @@ import AuthenticationServices
 import SafariServices
 
 public class AuthModel {
+
+    enum LogoutEntity {
+        case employee, student
+    }
+
     private let clientId: String
 
     public var session: NSObject? = nil
@@ -111,6 +116,67 @@ public class AuthModel {
                 return .success(result)
         }
     }
+
+    func logout(
+        _ entity: LogoutEntity,
+        callbackScheme: String
+    ) -> Result<URL, Error> {
+        var urlComponents = URLComponents()
+        urlComponents.scheme = "https"
+        switch entity {
+        case .employee:
+            let request = EmployeeLogout()
+            urlComponents.host = request.host
+            urlComponents.path = request.path
+        case .student:
+            let request = StudentLogout()
+            urlComponents.host = request.host
+            urlComponents.path = request.path
+        }
+
+        guard let url = urlComponents.url else { preconditionFailure("error in url") }
+        var result: Result<URL, Error>!
+        let semaphore = DispatchSemaphore(value: 0)
+
+        if #available(iOS 12, *) {
+            let session = ASWebAuthenticationSession(
+                url: url,
+                callbackURLScheme: callbackScheme
+                )
+            {
+                if let resultUrl = $0 {
+                    result = .success(resultUrl)
+                }
+                if let error = $1 {
+                    result = .failure(error)
+                }
+                semaphore.signal()
+            }
+            if #available(iOS 13.0, *) {
+                session.presentationContextProvider = authManager
+            }
+            session.start()
+            self.session = session
+        } else {
+            let session = SFAuthenticationSession(
+                url: url,
+                callbackURLScheme: callbackScheme
+                )
+            {
+                if let resultUrl = $0 {
+                    result = .success(resultUrl)
+                }
+                if let error = $1 {
+                    result = .failure(error)
+                }
+                semaphore.signal()
+            }
+            session.start()
+            self.session = session
+        }
+        _ = semaphore.wait(wallTimeout: .distantFuture)
+        return result
+    }
 }
 
 extension AuthModel: AuthManagerProtocol {
@@ -129,11 +195,11 @@ extension AuthModel: AuthManagerProtocol {
         return networkClient.search(request: request)
     }
 
-    public func logoutEmployee() {
-        _ = networkClient.search(request: EmployeeLogout())
+    public func logoutEmployee(callbackScheme: String) -> Result<URL, Error> {
+        logout(.employee, callbackScheme: callbackScheme)
     }
 
-    public func logoutStudent() {
-        _ = networkClient.search(request: StudentLogout())
+    public func logoutStudent(callbackScheme: String) -> Result<URL, Error> {
+        logout(.student, callbackScheme: callbackScheme)
     }
 }
