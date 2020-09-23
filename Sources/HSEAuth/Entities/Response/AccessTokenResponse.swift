@@ -20,7 +20,7 @@ public struct AccessTokenResponse: Codable {
         case refreshTokenExpiresIn = "refresh_token_expires_in"
     }
     
-    init(_ object: AccessTokenResponse, refreshToken: String, refreshTokenExpiresIn: Int) {
+    public init(_ object: AccessTokenResponse, refreshToken: String, refreshTokenExpiresIn: Int) {
         self.scope = object.scope
         self.accessToken = object.accessToken
         self.resource = object.resource
