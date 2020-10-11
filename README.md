@@ -1,12 +1,16 @@
 <p align="center">
-  <a href="https://hse.ru/web">
+  <a href="https://digital.hse.ru">
     <img width="200px" src="https://hse-media.hb.bizmrg.com/hsecore/hse-digital-logo-light/image-1582238921120.svg">
   </a>
 </p>
 
-<h1 align="center">HSEAuth</h1>
+<h1 align="center">HSEAuth-iOS</h1>
 
-Утилита, позволяющая авторизоваться с использованием openID
+**HSEAuth-iOS** является клиентской реализацией стандарта OpenID Connect/OAuth 2.0 для iOS. Библиотека позволяет взаимодействовать с OAuth провайдером на базе службы федерации Active Directory, а так же реализует функции мультиаккаунтности, бесшовного входа (SSO) и взаимодействие с API систем Высшей школы экономики с использованием единых авторизационных ключей.
+
+Подробнее про OpenID Connect/OAuth 2.0: https://docs.microsoft.com/en-us/windows-server/identity/ad-fs/development/ad-fs-openid-connect-oauth-concepts
+
+Для взаимодействия с авторизационным сервером (auth.hse.ru) подтребуются уникальные client_id и redirect_uri. Для их получения напишите нам на apps@hse.ru письмо с названием проекта, его кратким описанием и составом команды разработки.
 
 ## How to
 1. В проекте следует добавить в Info.plist
