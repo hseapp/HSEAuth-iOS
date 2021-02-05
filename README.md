@@ -38,7 +38,7 @@
 ```
 let model: AuthManagerProtocol = AuthModel(
        with: <CLIENT_ID>,
-       redirectScheme: "ru.hse.pf://",
+       redirectScheme: "ru.hse.pf",
        host: "auth.hse.ru",
        reditectPath: "/adfs/oauth2/ios/ru.hse.pf/callback"
        )

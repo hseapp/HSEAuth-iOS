@@ -3,10 +3,6 @@ import SafariServices
 
 public class AuthModel {
 
-    enum LogoutEntity {
-        case employee, student
-    }
-
     private let clientId: String
 
     public var session: NSObject? = nil
@@ -28,16 +24,12 @@ public class AuthModel {
         redirectUrl = redirectScheme + "://" + host + reditectPath
     }
 
-    func auth(
-        url: URL,
-        callbackScheme: String
-    ) -> Result<URL, Error> {
+    func auth(url: URL, callbackScheme: String) -> Result<URL, Error> {
         var result: Result<URL, Error>!
         let semaphore = DispatchSemaphore(value: 0)
 
         if #available(iOS 12, *) {
-            let session = ASWebAuthenticationSession(url: url,
-                                                     callbackURLScheme: callbackScheme)
+            let session = ASWebAuthenticationSession(url: url, callbackURLScheme: callbackScheme)
             {
                 if let resultUrl = $0 {
                     result = .success(resultUrl)
@@ -53,8 +45,7 @@ public class AuthModel {
             session.start()
             self.session = session
         } else {
-            let session = SFAuthenticationSession(url: url,
-                                                  callbackURLScheme: callbackScheme)
+            let session = SFAuthenticationSession(url: url, callbackURLScheme: callbackScheme)
             {
                 if let resultUrl = $0 {
                     result = .success(resultUrl)
@@ -116,24 +107,16 @@ public class AuthModel {
         }
     }
 
-    func logout(
-        _ entity: LogoutEntity,
-        callbackScheme: String
-    ) -> Result<URL, Error> {
-        var urlComponents = URLComponents()
-        urlComponents.scheme = "https"
-        switch entity {
-        case .employee:
-            let request = EmployeeLogout()
-            urlComponents.host = request.host
-            urlComponents.path = request.path
-        case .student:
-            let request = StudentLogout()
-            urlComponents.host = request.host
-            urlComponents.path = request.path
-        }
+    public func logout(url: URL, callbackScheme: String) -> Result<URL, Error> {
+        
+        var urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+            .add(key: "post_logout_redirect_uri", value: redirectUrl)
+        let request = Logout()
+        urlComponents?.path = request.path
 
-        guard let url = urlComponents.url else { preconditionFailure("error in url") }
+        guard let url = urlComponents?.url else { preconditionFailure("error in url") }
+        
+        
         var result: Result<URL, Error>!
         let semaphore = DispatchSemaphore(value: 0)
 
@@ -193,12 +176,14 @@ extension AuthModel: AuthManagerProtocol {
         let request = RefreshAccessTokenRequest(clientId: clientId, refreshToken: refreshToken)
         return networkClient.search(request: request)
     }
-
-    public func logoutEmployee(callbackScheme: String) -> Result<URL, Error> {
-        logout(.employee, callbackScheme: callbackScheme)
-    }
-
-    public func logoutStudent(callbackScheme: String) -> Result<URL, Error> {
-        logout(.student, callbackScheme: callbackScheme)
+    
+    public func logout(callbackScheme: String) -> Result<URL, Error> {
+        return getOpenIdConfig()
+            .flatMap { [weak self] in
+                guard let self = self,
+                      let url = URL(string: $0.authorizationEndpoint )
+                else { preconditionFailure() }
+                return self.logout(url: url, callbackScheme: callbackScheme)
+            }
     }
 }

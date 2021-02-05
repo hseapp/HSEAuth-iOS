@@ -2,7 +2,6 @@ import Foundation
 
 protocol HSERequest {
     associatedtype ResponseResult: Decodable
-    var host: String? { get }
     var method: RequestMethod { get }
     var path: String { get }
     var body: Data? { get }

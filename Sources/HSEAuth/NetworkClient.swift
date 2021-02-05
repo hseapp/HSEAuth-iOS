@@ -14,7 +14,7 @@ public class NetworkClient {
     func search<Request: HSERequest>(request: Request, limit: Int = 0) -> Result<Request.ResponseResult, Error> {
         var urlComponents = URLComponents()
         urlComponents.scheme = scheme
-        urlComponents.host = request.host ?? host
+        urlComponents.host = host
         urlComponents.path = request.path
 
         guard let url = urlComponents.url else { preconditionFailure("error in url") }

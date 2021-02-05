@@ -2,7 +2,6 @@ import Foundation
 
 public struct RefreshAccessTokenRequest: HSERequest {
     public typealias ResponseResult = AccessTokenResponse
-    var host: String? = nil
     var method: RequestMethod = .post
     public var path: String = "/adfs/oauth2/token/"
     let body: Data?
