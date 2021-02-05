@@ -24,7 +24,7 @@ public class AuthModel {
         redirectUrl = redirectScheme + "://" + host + reditectPath
     }
 
-    func auth(url: URL, callbackScheme: String) -> Result<URL, Error> {
+    func authMethod(url: URL, callbackScheme: String) -> Result<URL, Error> {
         var result: Result<URL, Error>!
         let semaphore = DispatchSemaphore(value: 0)
 
@@ -75,13 +75,10 @@ public class AuthModel {
             .add(key: "client_id", value: clientId)
             .add(key: "redirect_uri", value: redirectUrl)
             .add(key: "scope", value: ["profile", "openid"].joined(separator: " "))
-
+        
         guard let url = urlComponents?.url else { preconditionFailure("something wrong") }
-
-        return auth(
-            url: url,
-            callbackScheme: redirectScheme
-        )
+        
+        return authMethod(url: url, callbackScheme: redirectScheme)
             .flatMap {
                 guard
                     let components = URLComponents(
@@ -93,9 +90,9 @@ public class AuthModel {
                             .first(where: { $0.name == "code" })
                             .flatMap { $0.value }
                     )
-                    else { preconditionFailure("something wrong") }
+                else { preconditionFailure("something wrong") }
                 return .success(code)
-        }
+            }
     }
 
     func getOpenIdConfig() -> Result<OpenIdConfigResponse, Error> {
@@ -105,59 +102,6 @@ public class AuthModel {
                 self?.config = result
                 return .success(result)
         }
-    }
-
-    public func logout(url: URL, callbackScheme: String) -> Result<URL, Error> {
-        
-        var urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-            .add(key: "post_logout_redirect_uri", value: redirectUrl)
-        let request = Logout()
-        urlComponents?.path = request.path
-
-        guard let url = urlComponents?.url else { preconditionFailure("error in url") }
-        
-        
-        var result: Result<URL, Error>!
-        let semaphore = DispatchSemaphore(value: 0)
-
-        if #available(iOS 12, *) {
-            let session = ASWebAuthenticationSession(
-                url: url,
-                callbackURLScheme: callbackScheme
-                )
-            {
-                if let resultUrl = $0 {
-                    result = .success(resultUrl)
-                }
-                if let error = $1 {
-                    result = .failure(error)
-                }
-                semaphore.signal()
-            }
-            if #available(iOS 13.0, *) {
-                session.presentationContextProvider = authManager
-            }
-            session.start()
-            self.session = session
-        } else {
-            let session = SFAuthenticationSession(
-                url: url,
-                callbackURLScheme: callbackScheme
-                )
-            {
-                if let resultUrl = $0 {
-                    result = .success(resultUrl)
-                }
-                if let error = $1 {
-                    result = .failure(error)
-                }
-                semaphore.signal()
-            }
-            session.start()
-            self.session = session
-        }
-        _ = semaphore.wait(wallTimeout: .distantFuture)
-        return result
     }
 }
 
@@ -181,9 +125,14 @@ extension AuthModel: AuthManagerProtocol {
         return getOpenIdConfig()
             .flatMap { [weak self] in
                 guard let self = self,
-                      let url = URL(string: $0.authorizationEndpoint )
+                      let url = URL(string: $0.endSessionEndpoint )
                 else { preconditionFailure() }
-                return self.logout(url: url, callbackScheme: callbackScheme)
+                
+                let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)?
+                    .add(key: "post_logout_redirect_uri", value: redirectUrl)
+                guard let logoutUrl = urlComponents?.url else { preconditionFailure() }
+                
+                return self.authMethod(url: logoutUrl, callbackScheme: callbackScheme)
             }
     }
 }
