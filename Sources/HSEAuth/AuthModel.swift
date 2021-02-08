@@ -9,19 +9,20 @@ public class AuthModel {
     public var authManager: AuthManager?
     private var config: OpenIdConfigResponse?
     private let networkClient: NetworkClient
-    private let redirectScheme: String
-    private let redirectUrl: String
+    
+    private let loginCallback: RedirectCallback
+    private let logoutCallback: RedirectCallback
 
     public init(
         with clientId: String,
-        redirectScheme: String,
         host: String,
-        reditectPath: String
+        loginCallback: RedirectCallback,
+        logoutCallback: RedirectCallback
     ) {
         self.clientId = clientId
         networkClient = NetworkClient(host: host)
-        self.redirectScheme = redirectScheme
-        redirectUrl = redirectScheme + "://" + host + reditectPath
+        self.loginCallback = loginCallback
+        self.logoutCallback = logoutCallback
     }
 
     func authMethod(url: URL, callbackScheme: String) -> Result<URL, Error> {
@@ -63,7 +64,7 @@ public class AuthModel {
     }
 
     func getAccessToken(for code: String) -> Result<AccessTokenResponse, Error> {
-        let request = AccessTokenRequest(code: code, clientId: clientId, redirectUrl: redirectUrl)
+        let request = AccessTokenRequest(code: code, clientId: clientId, redirectUrl: loginCallback.redirectString())
         return networkClient.search(request: request)
     }
 
@@ -73,12 +74,12 @@ public class AuthModel {
         let urlComponents = URLComponents(url: authUrl, resolvingAgainstBaseURL: false)?
             .add(key: "response_type", value: "code")
             .add(key: "client_id", value: clientId)
-            .add(key: "redirect_uri", value: redirectUrl)
+            .add(key: "redirect_uri", value: loginCallback.redirectString())
             .add(key: "scope", value: ["profile", "openid"].joined(separator: " "))
         
         guard let url = urlComponents?.url else { preconditionFailure("something wrong") }
         
-        return authMethod(url: url, callbackScheme: redirectScheme)
+        return authMethod(url: url, callbackScheme: loginCallback.scheme)
             .flatMap {
                 guard
                     let components = URLComponents(
@@ -129,7 +130,7 @@ extension AuthModel: AuthManagerProtocol {
                 else { preconditionFailure() }
                 
                 let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)?
-                    .add(key: "post_logout_redirect_uri", value: redirectUrl)
+                    .add(key: "post_logout_redirect_uri", value: logoutCallback.redirectString())
                 guard let logoutUrl = urlComponents?.url else { preconditionFailure() }
                 
                 return self.authMethod(url: logoutUrl, callbackScheme: callbackScheme)
