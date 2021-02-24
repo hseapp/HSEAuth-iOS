@@ -122,7 +122,7 @@ extension AuthModel: AuthManagerProtocol {
         return networkClient.search(request: request)
     }
     
-    public func logout(callbackScheme: String) -> Result<URL, Error> {
+    public func logout(callbackScheme: String, idToken: String) -> Result<URL, Error> {
         return getOpenIdConfig()
             .flatMap { [weak self] in
                 guard let self = self,
@@ -131,6 +131,7 @@ extension AuthModel: AuthManagerProtocol {
                 
                 let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)?
                     .add(key: "post_logout_redirect_uri", value: logoutCallback.redirectString())
+                    .add(key: "id_token_hint", value: idToken)
                 guard let logoutUrl = urlComponents?.url else { preconditionFailure() }
                 
                 return self.authMethod(url: logoutUrl, callbackScheme: callbackScheme)
