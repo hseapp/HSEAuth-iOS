@@ -41,7 +41,7 @@ public class NetworkClient {
                 let object = try decoder.decode(Request.ResponseResult.self, from: dataUnwrapped)
                 result = .success(object)
             } catch {
-                result = .failure(error)
+                result = .failure(NetworkClientError(id: 2, desription: "\(error.localizedDescription)\nData: \(String(data: dataUnwrapped, encoding: .utf8) ?? "no data")"))
             }
             semaphore.signal()
         }
