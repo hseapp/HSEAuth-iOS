@@ -21,7 +21,7 @@ extension AuthManager: ASWebAuthenticationPresentationContextProviding {
 public protocol AuthManagerProtocol: class {
     var session: NSObject? { get set }
     var authManager: AuthManager? { get set }
-    func auth() -> Result<AccessTokenResponse, Error>
+    func auth(prefersEphemeralWebBrowserSession: Bool) -> Result<AccessTokenResponse, Error>
     func refreshAccessToken(with refreshToken: String) -> Result<AccessTokenResponse, Error>
-    func logout(callbackScheme: String, idToken: String) -> Result<URL, Error>
+    func logout(callbackScheme: String, idToken: String?, prefersEphemeralWebBrowserSession: Bool) -> Result<URL, Error>
 }

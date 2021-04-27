@@ -25,7 +25,7 @@ public class AuthModel {
         self.logoutCallback = logoutCallback
     }
 
-    func authMethod(url: URL, callbackScheme: String) -> Result<URL, Error> {
+    func authMethod(url: URL, callbackScheme: String, prefersEphemeralWebBrowserSession: Bool) -> Result<URL, Error> {
         var result: Result<URL, Error>!
         let semaphore = DispatchSemaphore(value: 0)
 
@@ -42,6 +42,7 @@ public class AuthModel {
             }
             if #available(iOS 13.0, *) {
                 session.presentationContextProvider = authManager
+                session.prefersEphemeralWebBrowserSession = prefersEphemeralWebBrowserSession
             }
             session.start()
             self.session = session
@@ -68,7 +69,7 @@ public class AuthModel {
         return networkClient.search(request: request)
     }
 
-    func getCode() -> Result<String, Error> {
+    func getCode(prefersEphemeralWebBrowserSession: Bool) -> Result<String, Error> {
         guard let authUrl = URL(string: config?.authorizationEndpoint ?? "") else { preconditionFailure("something wrong") }
 
         let urlComponents = URLComponents(url: authUrl, resolvingAgainstBaseURL: false)?
@@ -79,7 +80,7 @@ public class AuthModel {
         
         guard let url = urlComponents?.url else { preconditionFailure("something wrong") }
         
-        return authMethod(url: url, callbackScheme: loginCallback.scheme)
+        return authMethod(url: url, callbackScheme: loginCallback.scheme, prefersEphemeralWebBrowserSession: prefersEphemeralWebBrowserSession)
             .flatMap {
                 guard
                     let components = URLComponents(
@@ -107,12 +108,12 @@ public class AuthModel {
 }
 
 extension AuthModel: AuthManagerProtocol {
-    public func auth() -> Result<AccessTokenResponse, Error> {
+    public func auth(prefersEphemeralWebBrowserSession: Bool) -> Result<AccessTokenResponse, Error> {
         return getOpenIdConfig()
             .flatMap { [weak self] in
                 guard let self = self else { preconditionFailure() }
                 self.config = $0
-                return self.getCode()
+                return self.getCode(prefersEphemeralWebBrowserSession: prefersEphemeralWebBrowserSession)
             }
             .flatMap { getAccessToken(for: $0) }
     }
@@ -122,7 +123,7 @@ extension AuthModel: AuthManagerProtocol {
         return networkClient.search(request: request)
     }
     
-    public func logout(callbackScheme: String, idToken: String) -> Result<URL, Error> {
+    public func logout(callbackScheme: String, idToken: String?, prefersEphemeralWebBrowserSession: Bool) -> Result<URL, Error> {
         return getOpenIdConfig()
             .flatMap { [weak self] in
                 guard let self = self,
@@ -131,10 +132,12 @@ extension AuthModel: AuthManagerProtocol {
                 
                 let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)?
                     .add(key: "post_logout_redirect_uri", value: logoutCallback.redirectString())
-                    .add(key: "id_token_hint", value: idToken)
+                if let idToken = idToken {
+                    urlComponents?.add(key: "id_token_hint", value: idToken)
+                }
                 guard let logoutUrl = urlComponents?.url else { preconditionFailure() }
                 
-                return self.authMethod(url: logoutUrl, callbackScheme: callbackScheme)
+                return self.authMethod(url: logoutUrl, callbackScheme: callbackScheme, prefersEphemeralWebBrowserSession: prefersEphemeralWebBrowserSession)
             }
     }
 }
