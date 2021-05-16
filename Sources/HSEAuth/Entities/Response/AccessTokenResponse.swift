@@ -7,8 +7,8 @@ public struct AccessTokenResponse: Codable {
     public let tokenType: String
     public let idToken: String
     public let expiresIn: Int
-    public let refreshToken: String
-    public let refreshTokenExpiresIn: Int
+    public let refreshToken: String?
+    public let refreshTokenExpiresIn: Int?
 
     enum CodingKeys: String, CodingKey {
         case scope, resource
