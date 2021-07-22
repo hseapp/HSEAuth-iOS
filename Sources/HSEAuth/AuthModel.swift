@@ -72,14 +72,14 @@ public class AuthModel {
     func getCode(prefersEphemeralWebBrowserSession: Bool, login: String?) -> Result<String, Error> {
         guard let authUrl = URL(string: config?.authorizationEndpoint ?? "") else { preconditionFailure("something wrong") }
 
-        let urlComponents = URLComponents(url: authUrl, resolvingAgainstBaseURL: false)?
+        var urlComponents = URLComponents(url: authUrl, resolvingAgainstBaseURL: false)?
             .add(key: "response_type", value: "code")
             .add(key: "client_id", value: clientId)
             .add(key: "redirect_uri", value: loginCallback.redirectString())
             .add(key: "scope", value: ["profile", "openid"].joined(separator: " "))
 
         if let loginHint = login {
-            urlComponents?.add(key: "login_hint", value: loginHint)
+            urlComponents = urlComponents?.add(key: "login_hint", value: loginHint)
         }
         
         guard let url = urlComponents?.url else { preconditionFailure("something wrong") }
